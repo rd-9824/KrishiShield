@@ -1,11 +1,49 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+import axios from 'axios'
+
+// API client that points at our backend; configure base URL via VITE_API_URL
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+});
+
+// automatically include token when available
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('krishi_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const api = {
+  register: (data) => apiClient.post('/auth/register', data).then(r => r.data),
+  login: (data) => apiClient.post('/auth/login', data).then(r => r.data),
+
+  analyzeCrop: (params) => apiClient.post('/analyze-crop', params).then(r => r.data),
+  detectDisease: (info) => {
+    const form = new FormData();
+    if (info.imageFile) form.append('image', info.imageFile);
+    if (info.crop) form.append('crop', info.crop);
+    if (info.imageUrl) form.append('imageUrl', info.imageUrl);
+    return apiClient.post('/detect-disease', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(r => r.data);
+  },
+
+  weatherForecast: () => apiClient.get('/weather-forecast').then(r => r.data),
+  yieldEstimate: (params) => apiClient.post('/yield', params).then(r => r.data),
+  profitReport: () => apiClient.get('/profit-report').then(r => r.data),
+  simulate: (params) => apiClient.post('/simulate', params).then(r => r.data),
+}
+
 export const useAppStore = create(
   persist(
     (set, get) => ({
       // Auth
       user: null,
+      token: null,
       isAuthenticated: false,
       language: 'en',
 
@@ -17,15 +55,29 @@ export const useAppStore = create(
         farmSize: '',
       },
 
-      // Analysis results (simulated)
+      // Analysis results
       cropRecommendation: null,
       diseaseResult: null,
       yieldData: null,
       riskLevel: 'medium',
 
       // Actions
-      login: (userData) => set({ user: userData, isAuthenticated: true }),
-      logout: () => set({ user: null, isAuthenticated: false, cropRecommendation: null, diseaseResult: null }),
+      login: async (credentials) => {
+        const data = await api.login(credentials);
+        set({ user: data.user, token: data.token, isAuthenticated: true });
+        localStorage.setItem('krishi_token', data.token);
+        return data;
+      },
+      register: async (details) => {
+        const data = await api.register(details);
+        set({ user: data.user, token: data.token, isAuthenticated: true });
+        localStorage.setItem('krishi_token', data.token);
+        return data;
+      },
+      logout: () => {
+        localStorage.removeItem('krishi_token');
+        set({ user: null, token: null, isAuthenticated: false, cropRecommendation: null, diseaseResult: null });
+      },
 
       setLanguage: (lang) => set({ language: lang }),
 
@@ -42,30 +94,3 @@ export const useAppStore = create(
   )
 )
 
-// Mock API helpers (replace with real axios calls to FastAPI backend)
-export const api = {
-  analyzeCrop: async (params) => {
-    await new Promise(r => setTimeout(r, 1400))
-    const crops = ['Maize', 'Soybean', 'Cotton', 'Wheat', 'Rice', 'Groundnut', 'Sugarcane', 'Chickpea']
-    const idx = Math.floor((params.nitrogen / 200) * crops.length) % crops.length
-    return {
-      recommendations: [
-        { name: crops[idx],             confidence: 87, risk: 'low',  roi: '₹28,000–₹35,000' },
-        { name: crops[(idx+1)%8],       confidence: 74, risk: 'medium', roi: '₹22,000–₹29,000' },
-        { name: crops[(idx+2)%8],       confidence: 61, risk: 'high', roi: '₹38,000–₹50,000' },
-      ],
-      riskScore: 42,
-      rainfallDeviation: '+12%',
-      insight: 'Based on your soil pH and current rainfall, the top crop is optimal for this season.',
-    }
-  },
-  detectDisease: async (file) => {
-    await new Promise(r => setTimeout(r, 1800))
-    const diseases = [
-      { name: 'Leaf Blight (Helminthosporium)', confidence: 91, severity: 22, level: 'moderate', yieldLoss: '14–18%', financialImpact: '₹4,200', treatments: [ { name: 'Mancozeb 75% WP', dose: '2g/litre water', urgency: 'High', recovery: 75 }, { name: 'Neem Oil Spray', dose: '5ml/litre weekly', urgency: 'Medium', recovery: 60 }, { name: 'Remove Affected Leaves', dose: 'Immediately', urgency: 'High', recovery: 80 } ] },
-      { name: 'Powdery Mildew', confidence: 85, severity: 15, level: 'mild', yieldLoss: '8–12%', financialImpact: '₹2,100', treatments: [ { name: 'Sulfur Dust', dose: '25g/10L water', urgency: 'Medium', recovery: 70 }, { name: 'Potassium Bicarbonate', dose: '15g/L water', urgency: 'Low', recovery: 65 } ] },
-      { name: 'Stem Rot (Fusarium)', confidence: 88, severity: 38, level: 'severe', yieldLoss: '25–32%', financialImpact: '₹8,400', treatments: [ { name: 'Carbendazim 50% WP', dose: '1g/litre water', urgency: 'Critical', recovery: 55 }, { name: 'Trichoderma viride', dose: '4g/kg seed', urgency: 'High', recovery: 60 } ] },
-    ]
-    return diseases[Math.floor(Math.random() * diseases.length)]
-  },
-}

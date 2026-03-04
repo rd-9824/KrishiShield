@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { FlaskConical, TrendingDown, TrendingUp } from 'lucide-react'
+import { api } from '../store/useAppStore'
 
 function calcRisk(rain, price, sev, tempDev) {
   let score = 0
@@ -28,14 +29,9 @@ export default function SimulatorPage() {
   const [results, setResults] = useState(null)
 
   useEffect(() => {
-    const riskScore = calcRisk(rain, price, sev, tempDev)
-    const riskLabel = riskScore >= 5 ? 'High' : riskScore >= 3 ? 'Medium' : 'Low'
-    const yieldLoss = Math.round(sev * 0.65 + Math.abs(tempDev) * 0.5)
-    const yieldAmt  = +(55 * (1 - yieldLoss / 100)).toFixed(1)
-    const profit    = Math.round(yieldAmt * 10 * price / 1000)
-    const irr       = rain < 150 ? 'High' : rain < 250 ? 'Moderate' : 'Low'
-    const fertAdj   = tempDev > 3 ? '+10% N' : tempDev > 0 ? '+5% N' : 'Normal'
-    setResults({ riskScore, riskLabel, yieldLoss, yieldAmt, profit, irr, fertAdj })
+    api.simulate({ rain, price, sev, tempDev })
+      .then(data => setResults(data))
+      .catch(console.error);
   }, [rain, price, sev, tempDev])
 
   const projection = buildProjection(rain, price, sev)

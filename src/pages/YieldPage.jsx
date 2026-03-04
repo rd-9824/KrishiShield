@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { TrendingDown } from 'lucide-react'
+import { api } from '../store/useAppStore'
 
 const CROPS = {
   Maize:     { sens: 0.65, base: 55,  price: 1850 },
@@ -20,29 +21,12 @@ export default function YieldPage() {
   const [price, setPrice] = useState(1850)
   const [res,   setRes]   = useState(null)
 
+  // call backend whenever parameters change
   useEffect(() => {
-    const cfg = CROPS[crop] || CROPS.Maize
-    const base = cfg.base * area
-    const lp = sev * cfg.sens / 100
-    const actual = +(base * (1 - lp)).toFixed(1)
-    const lossQ  = +(base - actual).toFixed(1)
-    const lossR  = Math.round(lossQ * price / 10)
-    const rev    = Math.round(actual * price / 10)
-    setRes({ base, actual, lossQ, lossR, rev, lp: Math.round(lp * 1000) / 10 })
-    setPrice(cfg.price)
-  }, [crop, sev, area])
-
-  useEffect(() => {
-    if (!res) return
-    const cfg = CROPS[crop] || CROPS.Maize
-    const base = cfg.base * area
-    const lp = sev * cfg.sens / 100
-    const actual = +(base * (1 - lp)).toFixed(1)
-    const lossQ  = +(base - actual).toFixed(1)
-    const lossR  = Math.round(lossQ * price / 10)
-    const rev    = Math.round(actual * price / 10)
-    setRes({ base, actual, lossQ, lossR, rev, lp: Math.round(lp * 1000) / 10 })
-  }, [price])
+    api.yieldEstimate({ crop, area, severity: sev, price })
+      .then(data => setRes(data))
+      .catch(console.error);
+  }, [crop, sev, area, price]);
 
   const barData = res ? [
     { name: 'Expected', value: res.base,   fill: '#52b788' },

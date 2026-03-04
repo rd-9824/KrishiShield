@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { api } from '../store/useAppStore'
 
 function SummaryCard({ title, value, delta }) {
   return (
@@ -11,18 +12,17 @@ function SummaryCard({ title, value, delta }) {
 }
 
 export default function ProfitReportsPage() {
-  // Placeholder sample data
-  const summary = [
-    { title: 'This Month Profit', value: '₹12,450', delta: '+8% vs last month' },
-    { title: 'Estimated Annual', value: '₹1,45,200', delta: '+12% YoY' },
-    { title: 'Average per Acre', value: '₹6,200', delta: '' },
-  ]
+  const [summary, setSummary] = useState([]);
+  const [rows, setRows] = useState([]);
 
-  const sampleRows = [
-    { crop: 'Wheat', revenue: '₹45,000', cost: '₹20,000', profit: '₹25,000' },
-    { crop: 'Rice', revenue: '₹38,000', cost: '₹18,500', profit: '₹19,500' },
-    { crop: 'Maize', revenue: '₹22,000', cost: '₹9,000', profit: '₹13,000' },
-  ]
+  useEffect(() => {
+    api.profitReport()
+      .then(data => {
+        setSummary(data.summary || []);
+        setRows(data.rows || []);
+      })
+      .catch(console.error);
+  }, []);
 
   return (
     <div>
@@ -45,7 +45,7 @@ export default function ProfitReportsPage() {
             </tr>
           </thead>
           <tbody>
-            {sampleRows.map(r => (
+            {rows.map(r => (
               <tr key={r.crop} className="border-t">
                 <td className="px-4 py-3">{r.crop}</td>
                 <td className="px-4 py-3 text-right">{r.revenue}</td>

@@ -1,4 +1,9 @@
 node_modules/ 
 dist/ 
 build/ 
-.env 
+.env
+
+# backend folder
+backend/node_modules/
+backend/.env
+ 

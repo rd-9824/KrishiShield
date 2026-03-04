@@ -11,7 +11,7 @@ const LANGS = [
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { login, setLanguage, language } = useAppStore()
+  const { login, register, setLanguage, language } = useAppStore()
   const [form, setForm] = useState({ phone: '', password: '', name: '' })
   const [isRegister, setIsRegister] = useState(false)
   const [showPw, setShowPw] = useState(false)
@@ -19,18 +19,23 @@ export default function LoginPage() {
   const [error, setError] = useState('')
 
   const handleSubmit = async () => {
-    if (!form.phone) { setError('Please enter your phone or email'); return }
+    if (!form.phone) { setError('Please enter your email'); return }
     if (!form.password) { setError('Please enter your password'); return }
+
     setLoading(true)
     setError('')
-    await new Promise(r => setTimeout(r, 900))
-    login({
-      name:  form.name || form.phone.split('@')[0] || 'Farmer',
-      phone: form.phone,
-      state: 'Maharashtra',
-    })
+    try {
+      if (isRegister) {
+        await register({ username: form.name || form.phone.split('@')[0] || 'Farmer', email: form.phone, password: form.password });
+      } else {
+        await login({ email: form.phone, password: form.password });
+      }
+      navigate('/onboarding')
+    } catch (err) {
+      console.error(err)
+      setError(err.response?.data?.message || 'Authentication failed')
+    }
     setLoading(false)
-    navigate('/onboarding')
   }
 
   return (

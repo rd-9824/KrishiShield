@@ -56,34 +56,44 @@ npm install
 npm run dev
 ```
 
-## Connecting to FastAPI Backend
-Replace mock functions in `src/store/useAppStore.js`:
+## Backend Setup
+A simple Node.js/Express backend has been added under `backend/`.  It uses Sequelize to talk to PostgreSQL (or sqlite by default in development).
 
-```js
-// Replace this:
-export const api = {
-  analyzeCrop: async (params) => { ... mock ... }
-}
+1. Copy `backend/.env.example` to `backend/.env` and configure:
+   ```
+   DATABASE_URL=postgres://user:pass@localhost:5432/krishishield_db
+   PORT=5000
+   JWT_SECRET=<some secret string>
+   ```
+2. From the root of the workspace run:
+   ```bash
+   cd backend
+   npm install
+   npm run dev    # starts server with nodemon
+   # or `npm start` for production
+   ```
+3. Ensure the database is reachable.  With sqlite you don't need anything else; with PostgreSQL create the database first.
 
-// With real Axios calls:
-import axios from 'axios'
-const BASE = 'http://localhost:8000'
+The frontend already reads `VITE_API_URL` from a `.env` file (see root `.env`) and the `useAppStore` utilities use axios to call the endpoints, so no manual changes are required on the client side.
 
-export const api = {
-  analyzeCrop: (params) => axios.post(`${BASE}/crop/recommend`, params).then(r => r.data),
-  detectDisease: (file) => {
-    const fd = new FormData(); fd.append('file', file)
-    return axios.post(`${BASE}/disease/detect`, fd).then(r => r.data)
-  },
-}
-```
+### Available API Endpoints
+- `POST /api/auth/register` – create new user
+- `POST /api/auth/login` – obtain JWT token
+- `POST /api/analyze-crop` – crop recommendation (requires auth)
+- `POST /api/detect-disease` – disease detection (requires auth)
+- `GET  /api/weather-forecast` – sample weather data
+- `POST /api/yield` – yield & loss calculation
+- `GET  /api/profit-report` – profit summary
+- `POST /api/simulate` – what‑if simulation
 
-## Backend Expected Endpoints
-- `POST /crop/recommend` → `{ recommendations, riskScore, insight }`
-- `POST /disease/detect` → `{ name, confidence, severity, level, treatments }`
-- `GET /report/{userId}` → full report data
+Tokens are stored in `localStorage` by the client; axios automatically attaches them via an interceptor.
 
 ## Design System
 - **Font**: Playfair Display (headings) + DM Sans (body)
 - **Colors**: Forest green (`forest-*`) + Earth amber (`earth-*`)
 - **Components**: `.card`, `.btn-primary`, `.badge-low/medium/high`, `.input-field`
+
+
+
+- to run the backend --> use node src/index.js (go to backend folder)
+- to run frontend --> use npm run dev
