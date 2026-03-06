@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { FlaskConical, TrendingDown, TrendingUp } from 'lucide-react'
-import { api } from '../store/useAppStore'
+import { FlaskConical, AlertTriangle } from 'lucide-react'
+import { api, useAppStore } from '../store/useAppStore'
 import { useTranslation } from 'react-i18next'
 
 function calcRisk(rain, price, sev, tempDev) {
@@ -24,21 +24,46 @@ function buildProjection(rain, price, sev) {
 
 export default function SimulatorPage() {
   const { t } = useTranslation()
+  const { onboarding, cropRecommendation, diseaseResult, setRiskLevel } = useAppStore((s) => ({
+    onboarding: s.onboarding,
+    cropRecommendation: s.cropRecommendation,
+    diseaseResult: s.diseaseResult,
+    setRiskLevel: s.setRiskLevel,
+  }))
+
+  const defaultSev = typeof diseaseResult?.severity === 'number' ? diseaseResult.severity : 0
+  const defaultPrice = (() => {
+    const topCrop = cropRecommendation?.recommendations?.[0]?.name
+    // keep same defaults as backend /yield
+    const byCrop = { Maize: 1850, Wheat: 2200, Rice: 1950, Soybean: 3800, Cotton: 6500, Sugarcane: 285, Chickpea: 4800, Groundnut: 5200 }
+    return byCrop[topCrop] || 1850
+  })()
+
   const [rain,    setRain]    = useState(210)
-  const [price,   setPrice]   = useState(1850)
-  const [sev,     setSev]     = useState(22)
-  const [tempDev, setTempDev] = useState(2)
+  const [price,   setPrice]   = useState(defaultPrice)
+  const [sev,     setSev]     = useState(defaultSev)
+  const [tempDev, setTempDev] = useState(0)
   const [results, setResults] = useState(null)
 
   useEffect(() => {
+    setSev(defaultSev)
+  }, [defaultSev])
+  useEffect(() => {
+    setPrice(defaultPrice)
+  }, [defaultPrice])
+
+  useEffect(() => {
     api.simulate({ rain, price, sev, tempDev })
-      .then(data => setResults(data))
+      .then(data => {
+        setResults(data)
+        if (data?.riskLabel) setRiskLevel(data.riskLabel)
+      })
       .catch(console.error);
   }, [rain, price, sev, tempDev])
 
   const projection = buildProjection(rain, price, sev)
-  const riskColor  = results?.riskLabel === 'High' ? 'text-red-600' : results?.riskLabel === 'Medium' ? 'text-earth-600' : 'text-forest-600'
-  const riskBadge  = results?.riskLabel === 'High' ? 'badge-high' : results?.riskLabel === 'Medium' ? 'badge-medium' : 'badge-low'
+  const riskColor  = results?.riskLabel === 'high' ? 'text-red-600' : results?.riskLabel === 'medium' ? 'text-earth-600' : 'text-forest-600'
+  const riskBadge  = results?.riskLabel === 'high' ? 'badge-high' : results?.riskLabel === 'medium' ? 'badge-medium' : 'badge-low'
 
   const SliderInput = ({ label, value, onChange, min, max, step = 1, unit = '' }) => (
     <div className="space-y-2">
@@ -65,40 +90,40 @@ export default function SimulatorPage() {
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="font-display text-2xl font-bold text-forest-800 flex items-center gap-2">
-          <FlaskConical className="text-forest-500" /> {t('What-If Risk Simulator')}
+          <FlaskConical className="text-forest-500" /> {t('riskSimulator')}
         </h1>
-        <p className="text-forest-500 text-sm mt-1">{t('Adjust parameters to simulate risk scenarios and plan ahead')}</p>
+        <p className="text-forest-500 text-sm mt-1">{t('riskSimulatorSubtitle')}</p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
         {/* Sliders */}
         <div className="card space-y-6">
-          <h3 className="font-semibold text-forest-800 pb-3 border-b border-forest-100">{t('⚙️ Adjust Parameters')}</h3>
-          <SliderInput label="🌧️ Rainfall (mm)" value={rain}    onChange={setRain}    min={50}  max={500} unit=" mm" />
-          <SliderInput label="💰 Market Price (₹/q)" value={price} onChange={setPrice} min={500} max={5000} unit=" ₹" />
-          <SliderInput label="🦠 Disease Severity (%)" value={sev}  onChange={setSev}   min={0}   max={100} unit="%" />
-          <SliderInput label="🌡️ Temp Deviation (°C)" value={tempDev} onChange={setTempDev} min={-10} max={10} step={1} unit="°C" />
+          <h3 className="font-semibold text-forest-800 pb-3 border-b border-forest-100">{t('adjustParameters')}</h3>
+          <SliderInput label={t('rainfallMm')} value={rain}    onChange={setRain}    min={50}  max={500} unit=" mm" />
+          <SliderInput label={t('marketPriceRupeesPerQ')} value={price} onChange={setPrice} min={500} max={5000} unit=" ₹" />
+          <SliderInput label={t('diseaseSeverityPct')} value={sev}  onChange={setSev}   min={0}   max={100} unit="%" />
+          <SliderInput label={t('tempDeviationC')} value={tempDev} onChange={setTempDev} min={-10} max={10} step={1} unit="°C" />
         </div>
 
         {/* Results */}
         {results && (
           <div className="space-y-4">
-            <div className={`card border ${results.riskLabel === 'High' ? 'border-red-200 bg-red-50' : results.riskLabel === 'Medium' ? 'border-earth-200 bg-earth-50' : 'border-forest-200 bg-forest-50'}`}>
+            <div className={`card border ${results.riskLabel === 'high' ? 'border-red-200 bg-red-50' : results.riskLabel === 'medium' ? 'border-earth-200 bg-earth-50' : 'border-forest-200 bg-forest-50'}`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-forest-800">{t('📊 Simulation Results')}</h3>
-                <span className={riskBadge}>{results.riskLabel} Risk</span>
+                <h3 className="font-semibold text-forest-800">{t('simulationResults')}</h3>
+                <span className={riskBadge}>{t(results.riskLabel)} {t('risk')}</span>
               </div>
               <div className="space-y-3">
                 {[
-                  [t('Risk Score'),         `${results.riskScore}/8`,              riskColor],
-                  [t('Yield Impact'),       `-${results.yieldLoss}%`,              'text-red-600'],
-                  [t('Actual Yield'),       `${results.yieldAmt} q/acre`,          'text-forest-700'],
-                  [t('Profit Projection'),  `₹${results.profit.toLocaleString('en-IN')}`, 'text-forest-700'],
-                  [t('Irrigation Needed'),  results.irr,                           'text-forest-700'],
-                  [t('Fertiliser Adj.'),    results.fertAdj,                       'text-forest-700'],
+                  [t('riskScore'),         `${results.riskScore}/8`,              riskColor],
+                  [t('yieldImpact'),       `-${results.yieldLoss}%`,              'text-red-600'],
+                  [t('actualYield'),       `${results.yieldAmt} q/acre`,          'text-forest-700'],
+                  [t('profitProjection'),  `₹${results.profit.toLocaleString('en-IN')}`, 'text-forest-700'],
+                  [t('irrigationNeeded'),  t(results.irrLevel),                   'text-forest-700'],
+                  [t('fertiliserAdjustment'), t(results.fertAdj),                 'text-forest-700'],
                 ].map(([k, v, c]) => (
                   <div key={k} className="flex justify-between items-center py-2 border-b border-white/60 last:border-0 text-sm">
-                    <span className="text-forest-500">{t(k)}</span>
+                    <span className="text-forest-500">{k}</span>
                     <span className={`font-bold ${c}`}>{v}</span>
                   </div>
                 ))}
@@ -107,11 +132,19 @@ export default function SimulatorPage() {
 
             {/* Insight */}
             <div className="bg-white border border-forest-200 rounded-2xl p-4 text-sm text-forest-600">
-              💡 {results.riskLabel === 'High'
-                ? t('🚨 High risk detected! Consider drought-resistant varieties and immediate pest management.')
-                : results.riskLabel === 'Medium'
-                ? t('⚠️ Moderate risk. Monitor rainfall closely and prepare irrigation backup.')
-                : t('✅ Favourable conditions. Proceed with planned crop cycle and maintain current practices.')}
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0 text-earth-600" />
+                <div>
+                  <div className="font-semibold text-forest-800">{t('recommendation')}</div>
+                  <div className="mt-0.5">
+                    {results.riskLabel === 'high'
+                      ? t('riskInsightHigh')
+                      : results.riskLabel === 'medium'
+                      ? t('riskInsightMedium')
+                      : t('riskInsightLow')}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

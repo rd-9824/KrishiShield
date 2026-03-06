@@ -14,6 +14,9 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // include UI language for backend-translated dynamic strings
+  const lang = localStorage.getItem('language') || 'en';
+  config.params = { ...(config.params || {}), lang };
   return config;
 });
 
@@ -28,9 +31,7 @@ export const api = {
     if (info.imageFile) form.append('image', info.imageFile);
     if (info.crop) form.append('crop', info.crop);
     if (info.imageUrl) form.append('imageUrl', info.imageUrl);
-    return apiClient.post('/detect-disease', form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    }).then(r => r.data);
+    return apiClient.post('/detect-disease', form).then(r => r.data);
   },
 
   weatherForecast: (lat, lon) => apiClient.get('/weather-forecast', { params: { lat, lon } }).then(r => r.data),

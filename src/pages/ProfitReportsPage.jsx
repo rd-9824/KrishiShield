@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { api } from '../store/useAppStore'
 import { useTranslation } from 'react-i18next'
 
@@ -16,23 +16,35 @@ export default function ProfitReportsPage() {
   const { t } = useTranslation();
   const [summary, setSummary] = useState([]);
   const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState(null);
 
   useEffect(() => {
     api.profitReport()
       .then(data => {
         setSummary(data.summary || []);
         setRows(data.rows || []);
+        setMeta(data.meta || null);
       })
       .catch(console.error);
   }, []);
 
+  const formatRupees = useMemo(() => (n) => {
+    const v = Number(n) || 0;
+    return `₹${v.toLocaleString('en-IN')}`;
+  }, []);
+
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-4">{t('Profit Reports')}</h2>
+      <h2 className="text-2xl font-semibold mb-4">{t('profitReports')}</h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {summary.map(s => (
-          <SummaryCard key={s.title} {...s} />
+          <SummaryCard
+            key={s.key || s.title}
+            title={s.key ? t(s.key) : s.title}
+            value={typeof s.value === 'number' ? formatRupees(s.value) : s.value}
+            delta={s.deltaPct != null ? t('deltaVsLastMonth', { pct: s.deltaPct }) : s.delta}
+          />
         ))}
       </div>
 
@@ -40,26 +52,34 @@ export default function ProfitReportsPage() {
         <table className="w-full text-sm">
           <thead className="bg-forest-50 text-forest-600">
             <tr>
-              <th className="text-left px-4 py-3">{t('Crop')}</th>
-              <th className="text-right px-4 py-3">{t('Revenue')}</th>
-              <th className="text-right px-4 py-3">{t('Cost')}</th>
-              <th className="text-right px-4 py-3">{t('Profit')}</th>
+              <th className="text-left px-4 py-3">{t('crop')}</th>
+              <th className="text-right px-4 py-3">{t('revenue')}</th>
+              <th className="text-right px-4 py-3">{t('cost')}</th>
+              <th className="text-right px-4 py-3">{t('profit')}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map(r => (
               <tr key={r.crop} className="border-t">
                 <td className="px-4 py-3">{r.crop}</td>
-                <td className="px-4 py-3 text-right">{r.revenue}</td>
-                <td className="px-4 py-3 text-right">{r.cost}</td>
-                <td className="px-4 py-3 text-right font-semibold">{r.profit}</td>
+                <td className="px-4 py-3 text-right">{formatRupees(r.revenue)}</td>
+                <td className="px-4 py-3 text-right">{formatRupees(r.cost)}</td>
+                <td className={`px-4 py-3 text-right font-semibold ${r.profit < 0 ? 'text-red-600' : 'text-forest-800'}`}>
+                  {formatRupees(r.profit)}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="mt-6 text-sm text-forest-500">{t('Tip: Use seasonal price estimates and input costs to refine profit forecasts.')}</div>
+      {meta?.area && (
+        <div className="mt-4 text-xs text-forest-500">
+          {t('profitMeta', { area: meta.area, severity: meta.severity ?? 0 })}
+        </div>
+      )}
+
+      <div className="mt-6 text-sm text-forest-500">{t('profitTip')}</div>
     </div>
   )
 }

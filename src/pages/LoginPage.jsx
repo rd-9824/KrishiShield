@@ -3,15 +3,9 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore'
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
 
-const LANGS = [
-  { code: 'en', flag: '🇬🇧', label: 'English' },
-  { code: 'hi', flag: '🇮🇳', label: 'हिंदी' },
-  { code: 'mr', flag: '🇮🇳', label: 'मराठी' },
-]
-
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { login, register, setLanguage, language } = useAppStore()
+  const { login, register } = useAppStore()
   const [form, setForm] = useState({ phone: '', password: '', name: '' })
   const [isRegister, setIsRegister] = useState(false)
   const [showPw, setShowPw] = useState(false)
@@ -91,26 +85,6 @@ export default function LoginPage() {
               <p className="text-forest-500 text-sm mt-1">
                 {isRegister ? 'Start your farming intelligence journey' : 'Sign in to your farming dashboard'}
               </p>
-            </div>
-
-            {/* Language selector */}
-            <div className="mb-6">
-              <div className="text-xs font-bold text-forest-500 uppercase tracking-widest mb-2">
-                🌐 Language / भाषा
-              </div>
-              <div className="flex gap-2">
-                {LANGS.map(l => (
-                  <button key={l.code}
-                    onClick={() => setLanguage(l.code)}
-                    className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
-                      language === l.code
-                        ? 'border-forest-500 bg-forest-50 text-forest-700'
-                        : 'border-forest-100 text-forest-400 hover:border-forest-300'
-                    }`}>
-                    {l.flag} {l.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Fields */}

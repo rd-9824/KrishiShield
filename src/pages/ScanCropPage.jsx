@@ -14,6 +14,7 @@ export default function ScanCropPage() {
   const { diseaseResult, setDiseaseResult } = useAppStore()
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState(null)
+  const [error, setError] = useState(null)
   const fileRef = useRef()
 
   const handleFile = async (e) => {
@@ -22,9 +23,14 @@ export default function ScanCropPage() {
     const url = URL.createObjectURL(file)
     setPreview(url)
     setLoading(true)
+    setError(null)
+    setDiseaseResult(null)
     try {
-      const result = await api.detectDisease(file)
+      const result = await api.detectDisease({ imageFile: file })
       setDiseaseResult(result)
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to analyze image'
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -81,6 +87,17 @@ export default function ScanCropPage() {
               className="mt-4 btn-primary w-full flex items-center justify-center gap-2 text-sm">
               <Camera size={16} /> {preview ? 'Upload New Photo' : 'Take / Upload Photo'}
             </button>
+          )}
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start gap-2">
+              <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+              <div>
+                <div className="font-semibold">Analysis failed</div>
+                <div className="text-red-600 mt-0.5">{error}</div>
+                <div className="text-red-500 text-xs mt-2">Try again or use a different image.</div>
+              </div>
+            </div>
           )}
         </div>
 
