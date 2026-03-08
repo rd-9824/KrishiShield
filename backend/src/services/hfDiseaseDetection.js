@@ -64,8 +64,7 @@ export async function hfClassifyImage({ modelId, token, imageBuffer, retries = 2
   if (!token) throw new Error('HF_API_TOKEN is not configured');
   if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) throw new Error('Missing image buffer');
 
-  // Hugging Face deprecated api-inference.huggingface.co; use router.huggingface.co instead.
-  // Keep slashes in modelId (org/model) as path separators.
+//hugging face api
   const safeModelPath = String(modelId)
     .split('/')
     .map((seg) => encodeURIComponent(seg))

@@ -40,7 +40,7 @@ const CropRecommendation = sequelize.define('CropRecommendation', {
   }
 });
 
-CropRecommendation.belongsTo(User, { onDelete: 'CASCADE' });
+CropRecommendation.belongsTo(User, { foreignKey: { name: 'userId', field: 'UserId' }, onDelete: 'CASCADE' });
 User.hasMany(CropRecommendation);
 
 export default CropRecommendation;

@@ -2,6 +2,11 @@ import dotenv from 'dotenv';
 // environment variables must be loaded before anything else
 dotenv.config();
 
+// Fix "self-signed certificate in certificate chain" when behind proxy/antivirus (dev only)
+if (process.env.ALLOW_INSECURE_TLS === '1') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 import express from 'express';
 import cors from 'cors';
 import sequelize from './config/db.js';
@@ -9,6 +14,7 @@ import sequelize from './config/db.js';
 import authRoutes from './routes/auth.js';
 import analysisRoutes from './routes/analysis.js';
 import weatherRoutes from './routes/weather.js';
+import smsRoutes from './routes/sms.js';
 
 // import models so sequelize registers them
 import './models/user.js';
@@ -35,6 +41,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api', analysisRoutes);
+app.use('/api/sms', smsRoutes);
 
 const PORT = process.env.PORT || 5000;
 

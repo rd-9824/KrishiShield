@@ -4,8 +4,10 @@ import jwt from "jsonwebtoken";
 import CropRecommendation from "../models/cropRecommendation.js";
 import DiseaseResult from "../models/diseaseResult.js";
 import User from "../models/user.js";
+import { sendAlertSms, buildAlertMessageFromRecommendations } from "../services/smsAlerts.js";
 
 const router = express.Router();
+const lastSmsByUser = new Map(); // userId -> { sig, ts }
 
 /* ---------------- AUTH MIDDLEWARE ---------------- */
 
@@ -70,6 +72,7 @@ router.get("/today", auth, async (req, res) => {
 
     try {
       recentCropRecs = await CropRecommendation.findAll({
+        where: { userId: req.user.id },
         order: [["createdAt", "DESC"]],
         limit: 5,
       });
@@ -79,7 +82,7 @@ router.get("/today", auth, async (req, res) => {
 
     try {
       recentDiseaseResults = await DiseaseResult.findAll({
-       
+        where: { userId: req.user.id },
         order: [["createdAt", "DESC"]],
         limit: 5,
       });
@@ -190,6 +193,23 @@ router.get("/today", auth, async (req, res) => {
     );
 
     const topRecommendations = recommendations.slice(0, 5);
+
+    /* ---------- SMS ALERT: dynamic (send what is fetched) ---------- */
+    if (topRecommendations.length > 0) {
+      // include high/medium/low in SMS; user asked to send "what it is" dynamically
+      const smsText = buildAlertMessageFromRecommendations(topRecommendations, { temp, humidity, rain });
+      if (smsText) {
+        // prevent spamming: only send if alert signature changed or 30 mins passed
+        const now = Date.now();
+        const key = String(req.user.id);
+        const last = lastSmsByUser.get(key);
+        const windowMs = 30 * 60 * 1000;
+        if (!last || last.sig !== smsText || now - last.ts > windowMs) {
+          lastSmsByUser.set(key, { sig: smsText, ts: now });
+          sendAlertSms(smsText);
+        }
+      }
+    }
 
     /* ---------- RESPONSE ---------- */
 

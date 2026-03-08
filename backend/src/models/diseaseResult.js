@@ -8,7 +8,7 @@ const DiseaseResult = sequelize.define('DiseaseResult', {
   result: DataTypes.JSON,
 });
 
-DiseaseResult.belongsTo(User, { onDelete: 'CASCADE' });
+DiseaseResult.belongsTo(User, { foreignKey: { name: 'userId', field: 'UserId' }, onDelete: 'CASCADE' });
 User.hasMany(DiseaseResult);
 
 export default DiseaseResult;
