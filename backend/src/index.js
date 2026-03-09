@@ -49,7 +49,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', analysisRoutes);
 app.use('/api/sms', smsRoutes);
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 8080;
 
 async function start() {
   try {
@@ -61,7 +61,8 @@ async function start() {
     });
 
   } catch (err) {
-    console.error("❌ Unable to start server", err);
+    console.error("❌ Unable to start server", err.message);
+    process.exit(1);
   }
 };
 
