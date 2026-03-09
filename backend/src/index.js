@@ -68,3 +68,11 @@ const HOST = process.env.HOST || '0.0.0.0';
     console.error('❌ Unable to start server', err);
   }
 })();
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled Rejection:", err);
+});
