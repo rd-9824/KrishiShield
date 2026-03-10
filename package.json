@@ -20,7 +20,8 @@
     "react-i18next": "^16.5.5",
     "react-router-dom": "^6.26.0",
     "recharts": "^2.12.7",
-    "zustand": "^4.5.4"
+    "zustand": "^4.5.4" ,
+    "serve": "^14.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
